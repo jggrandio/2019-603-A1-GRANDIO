@@ -17,6 +17,34 @@ int* KNN(ArffData* dataset)
     // int classValue =  dataset->get_instance(instanceIndex)->get(dataset->num_attributes() - 1)->operator int32();
     
     // Implement KNN here, fill array of class predictions
+for(int i = 0; i < dataset->num_instances(); i++) // for each instance in the dataset
+    {
+        float smallestDistance = FLT_MAX;
+        int smallestDistanceClass;
+
+        for(int j = 0; j < dataset->num_instances(); j++) // target each other instance
+        {
+            if(i == j) continue;
+
+            float distance = 0;
+
+            for(int k = 0; k < dataset->num_attributes() - 1; k++) // compute the distance between the two instances
+            {
+                float diff = dataset->get_instance(i)->get(k)->operator float() - dataset->get_instance(j)->get(k)->operator float();
+                distance += diff * diff;
+            }
+
+            distance = sqrt(distance);
+
+            if(distance < smallestDistance) // select the closest one
+            {
+                smallestDistance = distance;
+                smallestDistanceClass = dataset->get_instance(j)->get(dataset->num_attributes() - 1)->operator int32();
+            }
+        }
+
+        predictions[i] = smallestDistanceClass;
+    }
     
     return predictions;
 }
