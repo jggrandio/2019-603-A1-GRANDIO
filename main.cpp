@@ -51,7 +51,7 @@ int* KNN(ArffData* dataset, int com)
 					}
 					smallestDistance[n] = distance;
 					smallestDistanceClass[n] = dataset->get_instance(j)->get(dataset->num_attributes() - 1)->operator int32();
-					continue;
+					break;
 				}
 			}
 		}
@@ -59,7 +59,7 @@ int* KNN(ArffData* dataset, int com)
 		int freq = 0;
 		int predict=0;
 		for ( int m = 0; m<com; m++){
-			printf ("%.3f...",smallestDistance[m] );
+			printf ("%d",smallestDistanceClass[m] );
 			int tfreq = 1;
 			int tpredict=smallestDistanceClass[m];
 			for (int s = m+1 ; s<com; s++){
@@ -69,6 +69,7 @@ int* KNN(ArffData* dataset, int com)
 			}
 			if (tfreq>freq){
 				predict=smallestDistanceClass[m];
+				freq=tfreq;
 			}
 		}
 		printf ("\nDecimals!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: %d \n", predict);
@@ -82,42 +83,74 @@ int* KNN(ArffData* dataset, int com)
 
 int* MPIKNN(ArffData* dataset)
 {
-    int* predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
-    
+	int* predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
+	float smallestDistance[com];
+	int smallestDistanceClass[com];
+
     // float attributeValue = dataset->get_instance(instanceIndex)->get(attributeIndex)->operator float();
     // int classValue =  dataset->get_instance(instanceIndex)->get(dataset->num_attributes() - 1)->operator int32();
     
     // Implement KNN here, fill array of class predictions
-for(int i = 0; i < dataset->num_instances(); i++) // for each instance in the dataset
-    {
-        float smallestDistance = FLT_MAX;
-        int smallestDistanceClass;
+		for(int i = 0; i < dataset->num_instances(); i++) // for each instance in the dataset
+		{
+			for (int l = 0; l<com; l++){
+				smallestDistance[l] = FLT_MAX;
+		}
 
-        for(int j = 0; j < dataset->num_instances(); j++) // target each other instance
-        {
-            if(i == j) continue;
+		for(int j = 0; j < dataset->num_instances(); j++) // target each other instance
+        	{
+			if(i == j) continue;
+	
+			float distance = 0;
+	
+			for(int k = 0; k < dataset->num_attributes() - 1; k++) // compute the distance between the two instances
+			{
+				float diff = dataset->get_instance(i)->get(k)->operator float() - dataset->get_instance(j)->get(k)->operator float();
+				distance += diff * diff;
+			}
+	
+			distance = sqrt(distance);
+			for (int n = 0; n<com; n++){
+	
+	
+				if(distance < smallestDistance[n]) // select the closest one
+				{
 
-            float distance = 0;
 
-            for(int k = 0; k < dataset->num_attributes() - 1; k++) // compute the distance between the two instances
-            {
-                float diff = dataset->get_instance(i)->get(k)->operator float() - dataset->get_instance(j)->get(k)->operator float();
-                distance += diff * diff;
-            }
+					for (int t=com-1; t>n; t--){
+						smallestDistance[t] = smallestDistance[t-1];
+						smallestDistanceClass[t] = smallestDistanceClass[t-1];
+					}
+					smallestDistance[n] = distance;
+					smallestDistanceClass[n] = dataset->get_instance(j)->get(dataset->num_attributes() - 1)->operator int32();
+					break;
+				}
+			}
+		}
+		
+		int freq = 0;
+		int predict=0;
+		for ( int m = 0; m<com; m++){
+			printf ("%d",smallestDistanceClass[m] );
+			int tfreq = 1;
+			int tpredict=smallestDistanceClass[m];
+			for (int s = m+1 ; s<com; s++){
+				if (tpredict==smallestDistanceClass[s]){
+					tfreq++;			
+				}
+			}
+			if (tfreq>freq){
+				predict=smallestDistanceClass[m];
+				freq=tfreq;
+			}
+		}
+		printf ("\nDecimals!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: %d \n", predict);
 
-            distance = sqrt(distance);
 
-            if(distance < smallestDistance) // select the closest one
-            {
-                smallestDistance = distance;
-                smallestDistanceClass = dataset->get_instance(j)->get(dataset->num_attributes() - 1)->operator int32();
-            }
-        }
-
-        predictions[i] = smallestDistanceClass;
-    }
+		predictions[i] = predict;
+	}	
     
-    return predictions;
+	return predictions;
 }
 
 int* computeConfusionMatrix(int* predictions, ArffData* dataset)
@@ -161,7 +194,7 @@ int main(int argc, char *argv[])
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
-    int* predictions = KNN(dataset,300);
+    int* predictions = KNN(dataset,1);
     int* confusionMatrix = computeConfusionMatrix(predictions, dataset);
     float accuracy = computeAccuracy(confusionMatrix, dataset);
     
