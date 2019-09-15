@@ -1,3 +1,4 @@
+#include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -6,7 +7,6 @@
 #include <iostream>
 #include "libarff/arff_parser.h"
 #include "libarff/arff_data.h"
-
 using namespace std;
 
 int* KNN(ArffData* dataset, int com)
@@ -81,23 +81,29 @@ int* KNN(ArffData* dataset, int com)
 	return predictions;
 }
 
-int* MPIKNN(ArffData* dataset)
+int* MPIKNN(ArffData* dataset, int com)
 {
 	int* predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
 	float smallestDistance[com];
 	int smallestDistanceClass[com];
+	
+	int numtasks, rank;
+	MPI_Init(NULL, NULL);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 
+	int work_load = dataset->num_instances() / numtasks;
     // float attributeValue = dataset->get_instance(instanceIndex)->get(attributeIndex)->operator float();
     // int classValue =  dataset->get_instance(instanceIndex)->get(dataset->num_attributes() - 1)->operator int32();
     
     // Implement KNN here, fill array of class predictions
-		for(int i = 0; i < dataset->num_instances(); i++) // for each instance in the dataset
+		for(int i = rank * work_load ; i < rank * work_load + work_load; i++) // for each instance in the dataset
 		{
 			for (int l = 0; l<com; l++){
 				smallestDistance[l] = FLT_MAX;
 		}
 
-		for(int j = 0; j < dataset->num_instances(); j++) // target each other instance
+		for(int j = rank * work_load ; j < rank * work_load + work_load; j++) // target each other instance
         	{
 			if(i == j) continue;
 	
