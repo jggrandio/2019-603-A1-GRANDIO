@@ -59,7 +59,6 @@ int* KNN(ArffData* dataset, int com)
 		int freq = 0;
 		int predict=0;
 		for ( int m = 0; m<com; m++){
-			printf ("%d",smallestDistanceClass[m] );
 			int tfreq = 1;
 			int tpredict=smallestDistanceClass[m];
 			for (int s = m+1 ; s<com; s++){
@@ -72,7 +71,6 @@ int* KNN(ArffData* dataset, int com)
 				freq=tfreq;
 			}
 		}
-		printf ("\nDecimals!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: %d \n", predict);
 
 
 		predictions[i] = predict;
@@ -97,13 +95,13 @@ int* MPIKNN(ArffData* dataset, int com)
     // int classValue =  dataset->get_instance(instanceIndex)->get(dataset->num_attributes() - 1)->operator int32();
     
     // Implement KNN here, fill array of class predictions
-		for(int i = rank * work_load ; i < rank * work_load + work_load; i++) // for each instance in the dataset
+		for(int i = rank*work_load; i < rank*work_load+work_load; i++) // for each instance in the dataset
 		{
 			for (int l = 0; l<com; l++){
 				smallestDistance[l] = FLT_MAX;
 		}
 
-		for(int j = rank * work_load ; j < rank * work_load + work_load; j++) // target each other instance
+		for(int j = rank*work_load ; j < rank*work_load+work_load; j++) // target each other instance
         	{
 			if(i == j) continue;
 	
@@ -137,7 +135,6 @@ int* MPIKNN(ArffData* dataset, int com)
 		int freq = 0;
 		int predict=0;
 		for ( int m = 0; m<com; m++){
-			printf ("%d",smallestDistanceClass[m] );
 			int tfreq = 1;
 			int tpredict=smallestDistanceClass[m];
 			for (int s = m+1 ; s<com; s++){
@@ -150,7 +147,7 @@ int* MPIKNN(ArffData* dataset, int com)
 				freq=tfreq;
 			}
 		}
-		printf ("\nDecimals!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: %d \n", predict);
+
 
 
 		predictions[i] = predict;
@@ -200,7 +197,7 @@ int main(int argc, char *argv[])
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
-    int* predictions = KNN(dataset,1);
+    int* predictions = MPIKNN(dataset,1);
     int* confusionMatrix = computeConfusionMatrix(predictions, dataset);
     float accuracy = computeAccuracy(confusionMatrix, dataset);
     
