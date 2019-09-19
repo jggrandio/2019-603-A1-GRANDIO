@@ -75,27 +75,41 @@ int* KNN(ArffData* dataset, int com)
 
 		predictions[i] = predict;
 	}	
-    
+    	
 	return predictions;
 }
 
 int* MPIKNN(ArffData* dataset, int com)
 {
-	int* predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
+	
 	float smallestDistance[com];
 	int smallestDistanceClass[com];
+	
+	
 	
 	int numtasks, rank;
 	MPI_Init(NULL, NULL);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 
+	int* final_predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
+	int* predictions;
+
+	// Have to divide between number of processors
+	int space = (dataset->num_instances() / numtasks);
+	int extra_work = (dataset->num_instances() % numtasks);
+	if (rank == 0){
+	predictions = (int*)malloc((space + extra_work)* sizeof(int));
+	int work_load = space + extra_work ;
+	}
+	else{
+	predictions = (int*)malloc( space * sizeof(int));
+	int work_load = space;
+	}
+	
 	int work_load = dataset->num_instances() / numtasks;
-    // float attributeValue = dataset->get_instance(instanceIndex)->get(attributeIndex)->operator float();
-    // int classValue =  dataset->get_instance(instanceIndex)->get(dataset->num_attributes() - 1)->operator int32();
     
-    // Implement KNN here, fill array of class predictions
-		for(int i = rank*work_load; i < rank*work_load+work_load; i++) // for each instance in the dataset
+		for(int i = rank*work_load + extra_work; i < rank*work_load+work_load; i++) // for each instance in the dataset
 		{
 			for (int l = 0; l<com; l++){
 				smallestDistance[l] = FLT_MAX;
@@ -150,10 +164,23 @@ int* MPIKNN(ArffData* dataset, int com)
 
 
 
-		predictions[i] = predict;
-	}	
-    
-	return predictions;
+		predictions[i - rank*work_load - extra_work] = predict;
+	}
+
+	
+	MPI_Gather(predictions, work_load, MPI_INT, final_predictions, work_load, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+	MPI_Finalize();
+	if (rank==0){	
+	return final_predictions;
+	}
+	else
+	{
+		exit(0);
+	}
+	
+
 }
 
 int* computeConfusionMatrix(int* predictions, ArffData* dataset)
