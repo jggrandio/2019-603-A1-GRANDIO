@@ -12,8 +12,11 @@ using namespace std;
 int* KNN(ArffData* dataset, int com)
 {
 	int* predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
-	float smallestDistance[com];
-	int smallestDistanceClass[com];
+	float* smallestDistance = (float*)malloc(com * sizeof(float));
+	int* smallestDistanceClass = (int*)malloc(com * sizeof(int));
+
+	float distance;
+	float diff;
 
     // float attributeValue = dataset->get_instance(instanceIndex)->get(attributeIndex)->operator float();
     // int classValue =  dataset->get_instance(instanceIndex)->get(dataset->num_attributes() - 1)->operator int32();
@@ -21,121 +24,136 @@ int* KNN(ArffData* dataset, int com)
     // Implement KNN here, fill array of class predictions
 		for(int i = 0; i < dataset->num_instances(); i++) // for each instance in the dataset
 		{
-			for (int l = 0; l<com; l++){
-				smallestDistance[l] = FLT_MAX;
-		}
-
-		for(int j = 0; j < dataset->num_instances(); j++) // target each other instance
-        	{
-			if(i == j) continue;
-	
-			float distance = 0;
-	
-			for(int k = 0; k < dataset->num_attributes() - 1; k++) // compute the distance between the two instances
+			for (int l = 0; l<com; l++)
 			{
-				float diff = dataset->get_instance(i)->get(k)->operator float() - dataset->get_instance(j)->get(k)->operator float();
-				distance += diff * diff;
+				smallestDistance[l] = FLT_MAX; //first I initialise all the smallest to maxfloat
 			}
-	
-			distance = sqrt(distance);
-			for (int n = 0; n<com; n++){
-	
-	
-				if(distance < smallestDistance[n]) // select the closest one
-				{
 
-
-					for (int t=com-1; t>n; t--){
-						smallestDistance[t] = smallestDistance[t-1];
-						smallestDistanceClass[t] = smallestDistanceClass[t-1];
+				for(int j = 0; j < dataset->num_instances(); j++) // target each other instance
+    		{
+					if(i == j) continue; //If It is the same instance I jump to the next iteration
+					
+					distance = 0; //Distance to 0 so the first one is a min distance
+	
+					for(int k = 0; k < dataset->num_attributes() - 1; k++) // compute the distance between the two instances
+					{
+						diff = dataset->get_instance(i)->get(k)->operator float() - dataset->get_instance(j)->get(k)->operator float();
+						distance += diff * diff;
 					}
-					smallestDistance[n] = distance;
-					smallestDistanceClass[n] = dataset->get_instance(j)->get(dataset->num_attributes() - 1)->operator int32();
-					break;
+					
+					distance = sqrt(distance);
+					for (int n = 0; n<com; n++)
+					{
+						if(distance < smallestDistance[n]) // select the closest one
+						{
+							for (int t=com-1; t>n; t--)
+							{
+								smallestDistance[t] = smallestDistance[t-1];
+								smallestDistanceClass[t] = smallestDistanceClass[t-1];
+							}
+							smallestDistance[n] = distance;
+							smallestDistanceClass[n] = dataset->get_instance(j)->get(dataset->num_attributes() - 1)->operator int32();
+							break;
+						}
+					}
 				}
-			}
-		}
-		
-		int freq = 0;
-		int predict=0;
-		for ( int m = 0; m<com; m++){
-			int tfreq = 1;
-			int tpredict=smallestDistanceClass[m];
-			for (int s = m+1 ; s<com; s++){
-				if (tpredict==smallestDistanceClass[s]){
-					tfreq++;			
+				
+				int freq = 0;
+				int predict=0;
+				for ( int m = 0; m<com; m++)
+				{
+					int tfreq = 1;
+					int tpredict=smallestDistanceClass[m];
+					for (int s = m+1 ; s<com; s++)
+					{
+						if (tpredict==smallestDistanceClass[s])
+						{
+							tfreq++;			
+						}
+					}
+					if (tfreq>freq)
+					{
+						predict=smallestDistanceClass[m];
+						freq=tfreq;
+					}
 				}
-			}
-			if (tfreq>freq){
-				predict=smallestDistanceClass[m];
-				freq=tfreq;
-			}
-		}
 
 
 		predictions[i] = predict;
-	}	
+		}	
     	
-	return predictions;
+		return predictions;
 }
 
 int* MPIKNN(ArffData* dataset, int com)
 {
 	
-	float smallestDistance[com];
-	int smallestDistanceClass[com];
-	
-	
-	
+	float* smallestDistance = (float*)malloc(com * sizeof(float));
+	int* smallestDistanceClass = (int*)malloc(com * sizeof(int));
+
 	int numtasks, rank;
+	
+	
+	
+	
+	
 	MPI_Init(NULL, NULL);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 
+	//int* receive_counts = (int*)malloc(numtasks * sizeof(int));
+   	//int* receive_displacements = (int*)malloc(numtasks * sizeof(int));
+
 	int* final_predictions = (int*)malloc(dataset->num_instances() * sizeof(int));
 	int* predictions;
+	
+
+	int space = (dataset->num_instances() / numtasks);
+	int bias = (dataset->num_instances() % numtasks);
+	int work_load;
 
 	// Have to divide between number of processors
-	int space = (dataset->num_instances() / numtasks);
-	int extra_work = (dataset->num_instances() % numtasks);
-	if (rank == 0){
-	predictions = (int*)malloc((space + extra_work)* sizeof(int));
-	int work_load = space + extra_work ;
+	
+	if (rank == 0)
+	{
+		predictions = (int*)malloc((space + bias)* sizeof(int));
+		work_load = space + bias ;
+		bias = 0;
 	}
-	else{
-	predictions = (int*)malloc( space * sizeof(int));
-	int work_load = space;
+	else
+	{
+		predictions = (int*)malloc( space * sizeof(int));
+		work_load = space;
 	}
 	
-	int work_load = dataset->num_instances() / numtasks;
-    
-		for(int i = rank*work_load + extra_work; i < rank*work_load+work_load; i++) // for each instance in the dataset
+
+	for(int i = rank*work_load + bias; i < rank*work_load + bias + work_load; i++) // for each instance in the dataset
+	{
+		for (int l = 0; l<com; l++)
 		{
-			for (int l = 0; l<com; l++){
-				smallestDistance[l] = FLT_MAX;
+			smallestDistance[l] = FLT_MAX;
 		}
 
 		for(int j = rank*work_load ; j < rank*work_load+work_load; j++) // target each other instance
-        	{
+		{
 			if(i == j) continue;
-	
+				
 			float distance = 0;
-	
+				
 			for(int k = 0; k < dataset->num_attributes() - 1; k++) // compute the distance between the two instances
 			{
 				float diff = dataset->get_instance(i)->get(k)->operator float() - dataset->get_instance(j)->get(k)->operator float();
 				distance += diff * diff;
 			}
-	
+				
 			distance = sqrt(distance);
-			for (int n = 0; n<com; n++){
-	
-	
+			for (int n = 0; n<com; n++)
+			{
+					
 				if(distance < smallestDistance[n]) // select the closest one
 				{
-
-
-					for (int t=com-1; t>n; t--){
+					for (int t=com-1; t>n; t--)
+					{
 						smallestDistance[t] = smallestDistance[t-1];
 						smallestDistanceClass[t] = smallestDistanceClass[t-1];
 					}
@@ -148,27 +166,32 @@ int* MPIKNN(ArffData* dataset, int com)
 		
 		int freq = 0;
 		int predict=0;
-		for ( int m = 0; m<com; m++){
+		for ( int m = 0; m<com; m++)
+		{
 			int tfreq = 1;
 			int tpredict=smallestDistanceClass[m];
-			for (int s = m+1 ; s<com; s++){
-				if (tpredict==smallestDistanceClass[s]){
+			for (int s = m+1 ; s<com; s++)
+			{
+				if (tpredict==smallestDistanceClass[s])
+				{
 					tfreq++;			
 				}
 			}
-			if (tfreq>freq){
+			if (tfreq>freq)
+			{
 				predict=smallestDistanceClass[m];
 				freq=tfreq;
 			}
-		}
-
-
-
-		predictions[i - rank*work_load - extra_work] = predict;
+		}	
+		predictions[i - rank*work_load] = predict;
 	}
 
-	
-	MPI_Gather(predictions, work_load, MPI_INT, final_predictions, work_load, MPI_INT, 0, MPI_COMM_WORLD);
+	//for (int i=0; i<numtasks; i++){
+	//receive_counts[i] = work_load;
+        //receive_displacements[i] = rank*work_load + bias;
+	//}
+
+	//MPI_Gatherv(&predictions, work_load, MPI_INT, final_predictions, receive_counts, receive_displacements, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Barrier(MPI_COMM_WORLD);
 	
 	MPI_Finalize();
@@ -224,7 +247,7 @@ int main(int argc, char *argv[])
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
-    int* predictions = MPIKNN(dataset,1);
+    int* predictions = KNN(dataset,1);
     int* confusionMatrix = computeConfusionMatrix(predictions, dataset);
     float accuracy = computeAccuracy(confusionMatrix, dataset);
     
