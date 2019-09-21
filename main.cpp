@@ -291,18 +291,20 @@ int main(int argc, char *argv[])
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
-    int* predictions = MPIKNN(dataset,1);
+    int* predictions = MPIKNN(dataset,4);
+	
+	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     int* confusionMatrix = MPIcomputeConfusionMatrix(predictions, dataset);
     float accuracy = MPIcomputeAccuracy(confusionMatrix, dataset);
     
-    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
   
     printf("The MPIKNN classifier for %lu instances required %llu ms CPU time, accuracy was %.4f\n", dataset->num_instances(), (long long unsigned int) diff, accuracy);
 	
 	clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-    predictions = KNN(dataset,1);
+    predictions = KNN(dataset,4);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
