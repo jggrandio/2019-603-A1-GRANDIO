@@ -277,9 +277,10 @@ float computeAccuracy(int* confusionMatrix, ArffData* dataset)
 
 int main(int argc, char *argv[])
 {
-    if(argc != 2)
+    if(argc != 3)
     {
         cout << "Usage: ./main datasets/datasetFile.arff" << endl;
+		cout << "Usage: k value" << endl;
         exit(0);
     }
     
@@ -287,11 +288,13 @@ int main(int argc, char *argv[])
     ArffData *dataset = parser.parse();
     struct timespec start, end;
 	
-
+	int k;
+	
+	sscanf(argv[2], "%d", &k);
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
-    int* predictions = MPIKNN(dataset,4);
+    int* predictions = MPIKNN(dataset,k);
 	
 	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     int* confusionMatrix = MPIcomputeConfusionMatrix(predictions, dataset);
@@ -304,7 +307,7 @@ int main(int argc, char *argv[])
 	
 	clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-    predictions = KNN(dataset,4);
+    predictions = KNN(dataset,k);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
