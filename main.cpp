@@ -93,7 +93,6 @@ int* MPIKNN(ArffData* dataset, int com)
 	int numtasks;
 	
 	
-	MPI_Init(NULL, NULL);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 	
@@ -293,6 +292,14 @@ int main(int argc, char *argv[])
 	sscanf(argv[2], "%d", &k);
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+	int rank;
+	int numtasks;
+	
+	
+	MPI_Init(NULL, NULL);
+	
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
     
     int* predictions = MPIKNN(dataset,k);
 	
