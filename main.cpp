@@ -182,7 +182,6 @@ int* MPIKNN(ArffData* dataset, int com)
 		predictions[i-rank*space] = predict;
 		}
 		
-		MPI_Barrier(MPI_COMM_WORLD);
   
 		return predictions;
 }
